@@ -1,4 +1,5 @@
 import ReactQueryProvider from '@/components/providers/ReactQueryProvider';
+import Layout from '@/components/templates/Layout';
 import '@/styles/globals.css';
 import { classNames } from '@/utils/classNames';
 import type { Metadata } from 'next';
@@ -15,9 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'FE BOILERPLATE',
-  description: 'Optimizing your process',
+  title: 'WFH Management',
+  description: '-',
 };
+
+const HIDE_ROUTES = '/';
 
 export default function RootLayout({
   children,
@@ -33,7 +36,9 @@ export default function RootLayout({
           'antialiased'
         )}
       >
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ReactQueryProvider>
+          <Layout hiddenRoutes={[HIDE_ROUTES]}>{children}</Layout>
+        </ReactQueryProvider>
       </body>
     </html>
   );
