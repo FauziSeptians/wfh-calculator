@@ -35,28 +35,56 @@ export class WfhCalculator {
     return days[date.getDay()];
   }
 
+  // UPDATE: Menggunakan API lokal untuk Cuti Bersama + Fallback Nager API
   private async fetchIndonesianHolidays(startYear: number, endYear: number) {
     const holidays = new Map<string, string>();
+
     try {
       for (let year = startYear; year <= endYear; year++) {
         try {
+          // 1. Coba API Khusus Indonesia (Mendukung Cuti Bersama SKB 3 Menteri)
           const response = await axios.get(
-            `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`,
+            `https://dayoffapi.vercel.app/api?year=${year}`,
             { timeout: 5000 }
           );
+
           const data = response.data;
           if (Array.isArray(data)) {
             data.forEach((holiday: any) => {
-              holidays.set(holiday.date, holiday.localName);
+              // API ini me-return: { tanggal: 'YYYY-MM-DD', keterangan: '...', is_cuti: boolean }
+              holidays.set(holiday.tanggal, holiday.keterangan);
             });
           }
         } catch (error: any) {
-          console.warn(`Gagal fetch data libur tahun ${year}:`, error.message);
+          console.warn(
+            `API Lokal gagal untuk tahun ${year}, mencoba Fallback Nager API...`
+          );
+
+          // 2. FALLBACK: Jika API lokal down, pakai Nager API (Hanya Libur Nasional)
+          try {
+            const fallbackResponse = await axios.get(
+              `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`,
+              { timeout: 5000 }
+            );
+            const fallbackData = fallbackResponse.data;
+            if (Array.isArray(fallbackData)) {
+              fallbackData.forEach((holiday: any) => {
+                holidays.set(holiday.date, holiday.localName);
+              });
+            }
+          } catch (fallbackError: any) {
+            console.warn(
+              `Fallback Nager API juga gagal tahun ${year}:`,
+              fallbackError.message
+            );
+          }
         }
       }
     } catch (error) {
+      console.error('Fatal error saat mengambil data libur:', error);
       return new Map<string, string>();
     }
+
     return holidays;
   }
 
@@ -71,6 +99,7 @@ export class WfhCalculator {
 
     const currentDate = this.parseDate(anchorDate);
 
+    // Fetch data libur & cuti bersama
     const publicHolidays = await this.fetchIndonesianHolidays(
       currentDate.getFullYear(),
       end.getFullYear()
@@ -94,6 +123,7 @@ export class WfhCalculator {
         currentStatus = 'WEEKEND';
       } else if (isPublicHoliday || isCustomLeave) {
         currentStatus = 'HOLIDAY/CUTI';
+        // Jika libur dari API, ambil keterangannya (misal: "Cuti Bersama Idul Fitri")
         currentNotes = isPublicHoliday
           ? publicHolidays.get(dateString)!
           : 'Cuti Pribadi';
