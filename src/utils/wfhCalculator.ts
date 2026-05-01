@@ -35,54 +35,56 @@ export class WfhCalculator {
     return days[date.getDay()];
   }
 
-  // UPDATE: Menggunakan API lokal untuk Cuti Bersama + Fallback Nager API
-  private async fetchIndonesianHolidays(startYear: number, endYear: number) {
+  // MENGGUNAKAN GOOGLE CALENDAR (100% Dinamis & Anti-Mati)
+  private async fetchGoogleHolidays(startYear: number, endYear: number) {
     const holidays = new Map<string, string>();
 
     try {
-      for (let year = startYear; year <= endYear; year++) {
-        try {
-          // 1. Coba API Khusus Indonesia (Mendukung Cuti Bersama SKB 3 Menteri)
-          const response = await axios.get(
-            `https://dayoffapi.vercel.app/api?year=${year}`,
-            { timeout: 5000 }
-          );
+      // URL Publik Kalender Libur Indonesia dari Google
+      const url =
+        'https://calendar.google.com/calendar/ical/id.indonesian%23holiday%40group.v.calendar.google.com/public/basic.ics';
 
-          const data = response.data;
-          if (Array.isArray(data)) {
-            data.forEach((holiday: any) => {
-              // API ini me-return: { tanggal: 'YYYY-MM-DD', keterangan: '...', is_cuti: boolean }
-              holidays.set(holiday.tanggal, holiday.keterangan);
-            });
+      const response = await axios.get(url, { timeout: 10000 });
+      const icsData = response.data;
+
+      // Parsing file .ics manual (sangat ringan dan cepat)
+      const lines = icsData.split(/\r?\n/);
+      let currentEvent: { date?: string; summary?: string } = {};
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.startsWith('BEGIN:VEVENT')) {
+          currentEvent = {}; // Reset untuk event baru
+        } else if (line.startsWith('DTSTART;VALUE=DATE:')) {
+          // Format Google: DTSTART;VALUE=DATE:20260215
+          const dateStr = line.split(':')[1];
+          if (dateStr && dateStr.length === 8) {
+            const y = dateStr.substring(0, 4);
+            const m = dateStr.substring(4, 6);
+            const d = dateStr.substring(6, 8);
+            currentEvent.date = `${y}-${m}-${d}`;
           }
-        } catch (error: any) {
-          console.warn(
-            `API Lokal gagal untuk tahun ${year}, mencoba Fallback Nager API...`
-          );
+        } else if (line.startsWith('SUMMARY')) {
+          // Format Google: SUMMARY:Cuti Bersama Idul Fitri
+          const parts = line.split(':');
+          if (parts.length > 1) {
+            currentEvent.summary = parts.slice(1).join(':').trim();
+          }
+        } else if (line.startsWith('END:VEVENT')) {
+          // Jika event selesai di-parsing, masukkan ke Map
+          if (currentEvent.date && currentEvent.summary) {
+            const eventYear = parseInt(currentEvent.date.substring(0, 4));
 
-          // 2. FALLBACK: Jika API lokal down, pakai Nager API (Hanya Libur Nasional)
-          try {
-            const fallbackResponse = await axios.get(
-              `https://date.nager.at/api/v3/PublicHolidays/${year}/ID`,
-              { timeout: 5000 }
-            );
-            const fallbackData = fallbackResponse.data;
-            if (Array.isArray(fallbackData)) {
-              fallbackData.forEach((holiday: any) => {
-                holidays.set(holiday.date, holiday.localName);
-              });
+            // Filter hanya ambil tahun yang kita butuhkan agar memori efisien
+            if (eventYear >= startYear && eventYear <= endYear) {
+              holidays.set(currentEvent.date, currentEvent.summary);
             }
-          } catch (fallbackError: any) {
-            console.warn(
-              `Fallback Nager API juga gagal tahun ${year}:`,
-              fallbackError.message
-            );
           }
         }
       }
     } catch (error) {
-      console.error('Fatal error saat mengambil data libur:', error);
-      return new Map<string, string>();
+      console.error('Gagal mengambil data dari Google Calendar:', error);
     }
 
     return holidays;
@@ -96,11 +98,10 @@ export class WfhCalculator {
   ): Promise<ScheduleItem[]> {
     const actualStart = this.parseDate(startDate);
     const end = this.parseDate(endDate);
-
     const currentDate = this.parseDate(anchorDate);
 
-    // Fetch data libur & cuti bersama
-    const publicHolidays = await this.fetchIndonesianHolidays(
+    // Panggil fungsi Google Calendar
+    const publicHolidays = await this.fetchGoogleHolidays(
       currentDate.getFullYear(),
       end.getFullYear()
     );
@@ -123,7 +124,6 @@ export class WfhCalculator {
         currentStatus = 'WEEKEND';
       } else if (isPublicHoliday || isCustomLeave) {
         currentStatus = 'HOLIDAY/CUTI';
-        // Jika libur dari API, ambil keterangannya (misal: "Cuti Bersama Idul Fitri")
         currentNotes = isPublicHoliday
           ? publicHolidays.get(dateString)!
           : 'Cuti Pribadi';
