@@ -22,7 +22,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       : pathname.replace('/', '').charAt(0).toUpperCase() + pathname.slice(2);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 bg-white px-4 shadow-sm transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 bg-white px-4 shadow-sm transition-[width,height] ease-linear">
       <div className="flex items-center gap-2">
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb>

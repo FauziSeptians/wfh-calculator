@@ -52,13 +52,10 @@ function LoginCard({ className }: LoginCardProps) {
   const handleLogin = () => {
     if (!selectedDay) return alert('Pilih hari terlebih dahulu!');
 
-    // Hitung tanggal pasti dari hari yang dipilih pada minggu ini
-    // weekStartsOn: 1 berarti minggu dimulai hari Senin
     const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
     const targetDate = addDays(startOfCurrentWeek, parseInt(selectedDay) - 1);
     const formattedAnchorDate = format(targetDate, 'yyyy-MM-dd');
 
-    // Simpan ke localStorage agar bisa dibaca oleh Dashboard
     localStorage.setItem('wfhAnchorDate', formattedAnchorDate);
 
     router.push('/dashboard');
@@ -68,7 +65,7 @@ function LoginCard({ className }: LoginCardProps) {
     <div
       className={classNames(
         className,
-        'mx-14 flex w-full flex-col gap-8 rounded-md px-3'
+        'mx-6 flex w-full flex-col gap-8 rounded-md px-3 md:mx-14'
       )}
     >
       <div id="login-card-title" className="space-y-2">
@@ -121,7 +118,7 @@ export default function Login() {
           title="Sinkronisasi jadwal WFH kamu dengan presisi."
           description="Tentukan titik awal jadwal WFH kamu minggu ini, dan biarkan sistem menghitung otomatis siklus kerja kamu ke depannya tanpa terganggu tanggal merah."
         />
-        <div className="flex h-[450px] w-full items-center justify-center rounded-2xl border bg-white shadow-xl lg:w-1/2">
+        <div className="flex h-[450px] w-full items-center justify-center rounded-2xl bg-white shadow-xl lg:w-1/2">
           <LoginCard />
         </div>
       </div>

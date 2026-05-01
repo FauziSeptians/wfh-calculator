@@ -30,8 +30,8 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <div className="flex w-full gap-6">
-        <div className="flex w-[40%] flex-col gap-4">
+      <div className="flex w-full flex-col gap-6 md:flex-row">
+        <div className="flex w-full flex-col gap-4 md:w-[40%]">
           <StatCard
             title="Status Hari Ini"
             value={statusToday}
@@ -78,7 +78,7 @@ export default function DashboardPage() {
           </StatCard>
         </div>
 
-        <div className="w-[60%]">
+        <div className="w-full md:w-[60%]">
           <EventCalendar
             events={events}
             height={650}
