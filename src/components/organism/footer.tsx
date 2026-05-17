@@ -15,7 +15,7 @@ export default function Footer({ children }: { children?: React.ReactNode }) {
       <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
         <p className="text-sm text-gray-500">
           © {currentYear}{' '}
-          <span className="font-medium text-gray-900">WFH Calculator</span>. All
+          <span className="font-medium text-gray-900">WFH Calculator - fauziseptians</span>. All
           rights reserved.
         </p>
 
